@@ -25,33 +25,30 @@ pipeline {
             } 
         } 
  
-        stage('Build Docker Images') { 
-            steps { 
-                script { 
-                    def gitSha = sh( 
-                        script: 'git rev-parse --short HEAD', 
-                        returnStdout: true 
-                    ).trim() 
- 
-                    env.IMAGE_TAG = gitSha 
- 
-                    sh """ 
-                        docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} ./frontend 
- 
-                        docker build -t ${AUTH_IMAGE}:${IMAGE_TAG} ./backend/authService 
- 
-                        docker build -t ${STREAMING_IMAGE}:${IMAGE_TAG} \ 
-                            -f ./backend/streamingService/Dockerfile ./backend 
- 
-                        docker build -t ${ADMIN_IMAGE}:${IMAGE_TAG} \ 
-                            -f ./backend/adminService/Dockerfile ./backend 
- 
-                        docker build -t ${CHAT_IMAGE}:${IMAGE_TAG} \ 
-                            -f ./backend/chatService/Dockerfile ./backend 
-                    """ 
-                } 
-            } 
-        } 
+        stage('Build Docker Images') {
+    steps {
+        script {
+            def gitSha = sh(
+                script: 'git rev-parse --short HEAD',
+                returnStdout: true
+            ).trim()
+
+            env.IMAGE_TAG = gitSha
+
+            sh """
+                docker build -t ${FRONTEND_IMAGE}:${IMAGE_TAG} ./frontend
+
+                docker build -t ${AUTH_IMAGE}:${IMAGE_TAG} ./backend/authService
+
+                docker build -t ${STREAMING_IMAGE}:${IMAGE_TAG} -f ./backend/streamingService/Dockerfile ./backend
+
+                docker build -t ${ADMIN_IMAGE}:${IMAGE_TAG} -f ./backend/adminService/Dockerfile ./backend
+
+                docker build -t ${CHAT_IMAGE}:${IMAGE_TAG} -f ./backend/chatService/Dockerfile ./backend
+            """
+        }
+    }
+}
  
         stage('Push Images to ECR') { 
             steps { 
