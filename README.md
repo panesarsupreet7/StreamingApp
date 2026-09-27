@@ -1180,23 +1180,6 @@ aws cloudwatch list-metrics \
 
 ---
 
-# Testing
-
-Recommended smoke checks:
-
-1. Register and log in through the web UI.
-2. Upload a small video and thumbnail through the admin dashboard.
-3. Confirm playback from the browse page.
-4. Verify that chat messages are broadcast between multiple browser tabs.
-5. Verify Kubernetes pods using `kubectl get pods`.
-6. Verify services using `kubectl get services`.
-7. Verify the Helm release using `helm status streamingapp`.
-8. Verify CloudWatch logs.
-9. Verify CloudWatch alarm configuration.
-10. Scale the application and verify that the application remains healthy.
-
----
-
 # Project Completion
 
 The complete application deployment was successfully implemented using modern DevOps tools and AWS services.
@@ -1223,7 +1206,8 @@ The project demonstrates:
 The application was successfully containerized, pushed to Amazon ECR, automated through Jenkins, deployed to Amazon EKS using Helm, monitored through CloudWatch, and validated after scaling.
 
 -------------------------------------------------------------------------------------------------------
-StreamingApp
+## StreamingApp
+
 Stream premium video content, host live watch parties, and manage your catalogue with a modern microservice architecture. The platform now ships with a production-ready admin portal, real-time chat, S3-backed adaptive streaming, and a redesigned cinematic frontend experience.
 
 Architecture
