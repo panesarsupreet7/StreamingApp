@@ -1,0 +1,47 @@
+images:
+  frontend:
+    repository: 444068947659.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-frontend
+    tag: 3fe3f95
+
+  auth:
+    repository: 444068947659.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-auth
+    tag: 3fe3f95
+
+  streaming:
+    repository: 444068947659.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-streaming
+    tag: 3fe3f95
+
+  admin:
+    repository: 444068947659.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-admin
+    tag: 3fe3f95
+
+  chat:
+    repository: 444068947659.dkr.ecr.ap-south-1.amazonaws.com/streamingapp-chat
+    tag: 3fe3f95
+
+mongo:
+  image: mongo:6
+
+jwtSecret: changeme
+
+services:
+  frontend:
+    port: 80
+    nodePort: 30000
+
+  auth:
+    port: 3001
+    nodePort: 30001
+
+  streaming:
+    port: 3002
+    nodePort: 30002
+
+  admin:
+    port: 3003
+    nodePort: 30003
+
+  chat:
+    port: 3004
+    nodePort: 30004
+EOF
