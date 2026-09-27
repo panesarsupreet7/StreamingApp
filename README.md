@@ -1,1246 +1,786 @@
-MERN Streaming Application — CI/CD, Docker, EKS, Helm, Monitoring & Logging
+# MERN Streaming Application — DevOps Deployment Project
 
-1. Project Overview
+This project demonstrates the complete DevOps implementation of a MERN-based streaming application using Docker, Amazon ECR, Jenkins, Amazon EKS, Kubernetes, Helm, Amazon CloudWatch monitoring, centralized logging, and application scaling.
 
-This project implements a complete containerized deployment and CI/CD workflow for a MERN-based streaming application.
+---
 
-The implementation covers:
+# Step 1 — Fork Repository
 
-GitHub repository setup
-
-Docker image creation for application services
-
-Docker Compose validation
-
-Amazon ECR image repositories
-
-EC2-based Jenkins installation
-
-Jenkins CI/CD pipeline
-
-GitHub webhook / automatic trigger
-
-Docker image build, tag and push
-
-ECR authentication and image pull
-
-Kubernetes deployment on Amazon EKS
-
-Helm chart packaging and deployment
-
-Amazon CloudWatch monitoring
-
-CloudWatch alarms
-
-Centralized application logging through CloudWatch Logs
-
-Kubernetes scaling and post-scaling health validation
-
-2. Overall Architecture
-
-flowchart TB
-    DEV["Developer / GitHub Repository"]
-
-    DEV -->|"Git Push"| J["Jenkins on EC2"]
-
-    J -->|"Checkout + Build + Test"| D["Docker Build"]
-    D -->|"Tag Images"| ECR["Amazon ECR"]
-
-    ECR -->|"Pull Images"| EKS["Amazon EKS Cluster"]
-
-    subgraph EKS["Amazon EKS - streamingapp-eks"]
-        direction TB
-
-        H["Helm Release"]
-
-        F["Frontend Deployment"]
-        A["Auth Service"]
-        S["Streaming Service"]
-        AD["Admin Service"]
-        C["Chat Service"]
-        M["MongoDB StatefulSet"]
-
-        H --> F
-        H --> A
-        H --> S
-        H --> AD
-        H --> C
-        H --> M
-    end
-
-    J -->|"Helm install / upgrade"| H
-
-    EKS --> CW["Amazon CloudWatch"]
-    CW --> MET["Container Insights Metrics"]
-    CW --> LOG["CloudWatch Logs"]
-    CW --> ALARM["CloudWatch Alarm"]
-
-    EKS -->|"Fluent Bit"| LOG
-    EKS -->|"CloudWatch Agent"| MET
-
-    F --> USER["Application User"]
-    A --> M
-    S --> M
-    AD --> M
-    C --> M
-
-2.1 Deployment Flow
-
-GitHub
-   |
-   | Push / Webhook
-   v
-Jenkins on EC2
-   |
-   +--> Checkout source
-   +--> Install dependencies
-   +--> Test
-   +--> Docker build
-   +--> Tag images
-   +--> Push images to ECR
-   |
-   +--> Helm deployment
-            |
-            v
-       Amazon EKS
-            |
-     +------+------+------+------+------+
-     |      |      |      |      |      |
- Frontend Auth Streaming Admin  Chat   MongoDB
-            |
-            v
-       CloudWatch
-       /         \
-   Metrics       Logs
-      |
-   Alarms
-
-3. Repository Setup
-
-The project repository was forked and prepared for the CI/CD implementation.
-
-Screenshot file — 01-fork-repository.png
+The project repository was forked from the original GitHub repository to create an independent copy for the DevOps implementation.
 
 ![GitHub Repository Fork](./screenshots/01-fork-repository.png)
 
+**Verification**
 
+The repository was successfully forked and was available under the GitHub account for further implementation.
 
-Verification
+---
 
-The repository was available and contained the application source code before Dockerization and deployment work started.
-
-4. Dockerization
-
-4.1 Build Docker Images
+# Step 2 — Build Docker Images
 
 Docker images were created for the application services.
 
-Important command
+**Important command**
 
+```bash
 docker images
-
-Screenshot file — 02-docker-images-built.png
+```
 
 ![Docker Images Built](./screenshots/02-docker-images-built.png)
 
+**Verification**
 
+The required application Docker images were successfully built and were available locally.
 
+---
 
-Verification
+# Step 3 — Configure Docker Compose
 
-The required application images were visible locally with the expected repository/tag information.
+Docker Compose was configured to run the application services together.
 
-4.2 Docker Compose Configuration
+**Important command**
 
-Docker Compose was used to configure and validate the application services together before the Kubernetes deployment.
-
-Important command
-
-docker compose up -d
-
-To verify the running containers:
-
-docker ps
-
-Screenshot file — 03-docker-compose-configuration.png
+```bash
+docker-compose up -d
+```
 
 ![Docker Compose Configuration](./screenshots/03-docker-compose-configuration.png)
 
+**Verification**
 
+The Docker Compose configuration was successfully created for the application stack.
 
-Verification
+---
 
-The Docker Compose configuration successfully defined the required services and allowed the application stack to be validated before moving to EKS.
+# Step 4 — Verify Docker Images
 
-4.3 Docker Image Verification
+The locally created Docker images were verified before pushing them to Amazon ECR.
 
-The created images were verified before pushing them to Amazon ECR.
+**Important command**
 
-Important command
-
+```bash
 docker images
-
-Screenshot file — 04-docker-images-verified.png
+```
 
 ![Docker Images Verified](./screenshots/04-docker-images-verified.png)
 
+**Verification**
 
+All required Docker images were available with their respective repository names and tags.
 
-Verification
+---
 
-The expected Docker images were present locally and ready for the ECR stage.
+# Step 5 — Verify Running Containers
 
-4.4 Running Containers Verification
+The application containers were checked to verify that they were running successfully.
 
-The running containers were checked using:
+**Important command**
 
+```bash
 docker ps
-
-Screenshot file — 05-containers-running.png
+```
 
 ![Containers Running](./screenshots/05-containers-running.png)
 
-
-
-Verification
+**Verification**
 
 The required application containers were running successfully.
 
-5. Amazon ECR Setup
+---
 
-5.1 Create ECR Repositories
+# Step 6 — Create Amazon ECR Repositories
 
-Amazon Elastic Container Registry repositories were created for storing the application Docker images.
-
-Screenshot file — 06-ecr-repositories-created.png
+Amazon Elastic Container Registry repositories were created to store the Docker images.
 
 ![ECR Repositories Created](./screenshots/06-ecr-repositories-created.png)
 
+**Verification**
 
-Verification
+The required ECR repositories were successfully created and were ready to receive Docker images.
 
-The required ECR repositories were visible in AWS and ready to receive Docker images.
+---
 
-5.2 Tag Docker Images for ECR
+# Step 7 — Tag Docker Images for ECR
 
-The local images were tagged with the appropriate ECR repository names.
+The locally created Docker images were tagged with the Amazon ECR repository URL.
 
-Example command
+**Important command**
 
+```bash
 docker tag <local-image>:<tag> <account-id>.dkr.ecr.ap-south-1.amazonaws.com/<repository>:<tag>
-
-Screenshot file — 07-ecr-images-tagged.png
+```
 
 ![ECR Images Tagged](./screenshots/07-ecr-images-tagged.png)
 
+**Verification**
 
+The Docker images were successfully tagged with the appropriate ECR repository and tag.
 
-Verification
+---
 
-The Docker images showed ECR-compatible repository/tag references.
+# Step 8 — Push Images to ECR
 
-5.3 Push Images to ECR
+The Docker images were pushed to Amazon ECR.
 
-The images were pushed to Amazon ECR.
+**Important command**
 
-Important command
-
+```bash
 docker push <account-id>.dkr.ecr.ap-south-1.amazonaws.com/<repository>:<tag>
+```
 
-Screenshot file — 08-ecr-images-pushed.png
+![ECR Images Pushed](./screenshots/08-ecr-images-pushed.png)
 
+**Verification**
 
+The Docker push completed successfully and the images were uploaded to Amazon ECR.
 
-Verification
+---
 
-The Docker push completed successfully and the images were uploaded to ECR.
+# Step 9 — Verify Images in ECR
 
-5.4 Verify Images in ECR
+The images stored in Amazon ECR were verified after the push operation.
 
-The images were verified after the push.
+**Important command**
 
-Important command
-
+```bash
 aws ecr describe-images \
   --repository-name <repository> \
   --region ap-south-1
+```
 
-Screenshot file — 09-ecr-images-verified.png
+![ECR Images Verified](./screenshots/09-ecr-images-verified.png)
 
+**Verification**
 
+The expected Docker images and tags were visible in the ECR repositories.
 
-Verification
+---
 
-The expected image tags/digests were available in Amazon ECR.
+# Step 10 — Create Jenkins EC2 Instance
 
-6. Jenkins CI/CD Server Setup
+An EC2 instance was created to host the Jenkins CI/CD server.
 
-6.1 Jenkins EC2 Instance
+![Jenkins EC2 Instance](./screenshots/10-jenkins-ec2-instance.png)
 
-An EC2 instance was prepared to host Jenkins and perform the CI/CD operations.
+**Verification**
 
-Screenshot file — 10-jenkins-ec2-instance.png
+The Jenkins EC2 instance was successfully created and was running.
 
+---
 
+# Step 11 — Verify Jenkins EC2 Operating System
 
-Verification
+The operating system of the Jenkins EC2 instance was verified.
 
-The EC2 instance was running and used as the Jenkins server.
+**Important command**
 
-6.2 Verify EC2 Operating System
-
-The EC2 operating system was checked from the terminal.
-
-Important command
-
+```bash
 cat /etc/os-release
+```
 
-Screenshot file — 11-jenkins-ec2-os-check.png
+![Jenkins EC2 OS Check](./screenshots/11-jenkins-ec2-os-check.png)
 
+**Verification**
 
+The EC2 operating system information was displayed successfully.
 
-Verification
+---
 
-The expected Linux operating system information was displayed.
+# Step 12 — Install Java
 
-6.3 Install Java
+Java was installed on the Jenkins EC2 instance because Jenkins requires Java.
 
-Jenkins requires Java.
+**Important command**
 
-Important command
-
+```bash
 java -version
+```
 
-Screenshot file — 12-java-installed.png
+![Java Installed](./screenshots/12-java-installed.png)
 
+**Verification**
 
+The installed Java version was successfully verified.
 
-Verification
+---
 
-The installed Java version was confirmed successfully.
+# Step 13 — Verify Jenkins Service
 
-6.4 Verify Jenkins Service
+The Jenkins service was checked after installation.
 
-Jenkins was installed and its service was checked.
+**Important command**
 
-Important command
-
+```bash
 sudo systemctl status jenkins
+```
 
-Screenshot file — 13-jenkins-service-running.png
+![Jenkins Service Running](./screenshots/13-jenkins-service-running.png)
 
-
-
-Verification
+**Verification**
 
 The Jenkins service was running successfully.
 
-6.5 Jenkins Security Group
+---
 
-The Jenkins EC2 security group was configured to allow access to Jenkins on port 8080.
+# Step 14 — Configure Jenkins Security Group
 
-Screenshot file — 14-jenkins-security-group-8080.png
+The Jenkins EC2 security group was configured to allow access to Jenkins through port `8080`.
 
+![Jenkins Security Group 8080](./screenshots/14-jenkins-security-group-8080.png)
 
+**Verification**
 
-Verification
+Port `8080` was configured in the security group for Jenkins web access.
 
-Port 8080 was available for Jenkins web access according to the configured security group.
+---
 
-6.6 Jenkins Initial Unlock
+# Step 15 — Jenkins Initial Unlock
 
-The initial Jenkins unlock screen was completed.
+The Jenkins initial unlock page was accessed during the first-time Jenkins setup.
 
-Screenshot file — 15-jenkins-unlock-page.png
+![Jenkins Unlock Page](./screenshots/15-jenkins-unlock-page.png)
 
+**Verification**
 
+The initial Jenkins setup was successfully completed.
 
-6.7 Jenkins Dashboard
+---
 
-After the initial setup, the Jenkins dashboard was accessible.
+# Step 16 — Jenkins Dashboard
 
-Screenshot file — 16-jenkins-dashboard.png
+The Jenkins dashboard was accessed after completing the initial setup.
 
+![Jenkins Dashboard](./screenshots/16-jenkins-dashboard.png)
 
+**Verification**
 
-Verification
+The Jenkins dashboard was available and ready for CI/CD job configuration.
 
-Jenkins was ready to create and execute CI/CD jobs.
+---
 
-7. Docker and AWS Integration on Jenkins EC2
+# Step 17 — Install Docker on Jenkins EC2
 
-7.1 Docker Installation
+Docker was installed on the Jenkins EC2 instance so Jenkins could build, tag, push, and manage Docker images.
 
-Docker was installed on the Jenkins EC2 instance.
+**Important commands**
 
-Important commands
-
+```bash
 docker --version
+```
 
+```bash
 sudo systemctl status docker
+```
 
-Screenshot file — 17-Docker-installed-EC2.png
+![Docker Installed on EC2](./screenshots/17-Docker-installed-EC2.png)
 
+**Verification**
 
+Docker was successfully installed and available on the Jenkins EC2 instance.
 
-Verification
+---
 
-Docker was available on the Jenkins EC2 server and could be used by Jenkins jobs.
+# Step 18 — Configure Jenkins ECR IAM Role
 
-7.2 IAM Role for ECR Access
+An IAM role was configured for the Jenkins EC2 instance to allow the server to interact with Amazon ECR.
 
-An IAM role was associated with the Jenkins EC2 instance so the server could interact with AWS services without storing long-lived AWS access keys on the server.
+![Jenkins ECR IAM Role](./screenshots/18-jenkins-ecr-iam-role.png)
 
-Screenshot file — 18-jenkins-ecr-iam-role.png
+**Verification**
 
+The Jenkins EC2 instance had the required IAM permissions for ECR operations.
 
+---
 
-Verification
+# Step 19 — Authenticate EC2 with Amazon ECR
 
-The EC2 instance had an IAM role with the required AWS permissions for the CI/CD workflow.
+Docker on the Jenkins EC2 instance was authenticated with Amazon ECR.
 
-7.3 ECR Docker Login
+**Important command**
 
-The Jenkins EC2 instance authenticated Docker with Amazon ECR.
-
-Important command
-
+```bash
 aws ecr get-login-password --region ap-south-1 | \
 docker login \
---username AWS \
---password-stdin <account-id>.dkr.ecr.ap-south-1.amazonaws.com
+  --username AWS \
+  --password-stdin <account-id>.dkr.ecr.ap-south-1.amazonaws.com
+```
 
-Screenshot file — 19-EC2-ECR-Docker-login.png
+![EC2 ECR Docker Login](./screenshots/19-EC2-ECR-Docker-login.png)
 
+**Verification**
 
+Docker successfully authenticated with the Amazon ECR registry.
 
-Verification
+---
 
-Docker authentication against ECR completed successfully.
+# Step 20 — Jenkins ECR Push
 
-8. Jenkins CI/CD Pipeline
+The Jenkins pipeline was configured to build Docker images and push them to Amazon ECR.
 
-The Jenkins pipeline automates the application build and deployment workflow.
+![Jenkins ECR Push Success](./screenshots/20-Jenkins-ECR-Push-Success.png)
 
-8.1 Jenkins ECR Push
+**Verification**
 
-The Jenkins job built the required images and pushed them to ECR.
+The Jenkins job successfully completed the ECR image push operation.
 
-Screenshot file — 20-Jenkins-ECR-Push-Success.png
+---
 
+# Step 21 — Configure Automatic GitHub Trigger
 
+GitHub was integrated with Jenkins so that changes pushed to the repository could automatically trigger the Jenkins pipeline.
 
-Verification
+![Jenkins Automatic GitHub Trigger Success](./screenshots/21-Jenkins-Automatic-GitHub-Trigger-Success.png)
 
-The Jenkins job completed the ECR push stage successfully.
+**Verification**
 
-8.2 Automatic GitHub Trigger
+The Jenkins pipeline was automatically triggered following a GitHub repository change.
 
-GitHub was connected to Jenkins so that repository changes could automatically trigger the pipeline.
+---
 
-Screenshot file — 21-Jenkins-Automatic-GitHub-Trigger-Success.png
+# Step 22 — Verify Jenkins Console Output
 
+The Jenkins console output was checked to verify successful pipeline execution.
 
+**Important location**
 
-Verification
+```text
+Jenkins Dashboard
+    ↓
+Jenkins Job
+    ↓
+Build
+    ↓
+Console Output
+```
 
-A GitHub repository change successfully triggered the Jenkins pipeline automatically.
+![Jenkins Console Output Success](./screenshots/22-Jenkins_Console-output-Success.png)
 
-8.3 Jenkins Console Output
+**Verification**
 
-The Jenkins console output was checked to verify the pipeline stages.
+The Jenkins console output confirmed successful execution of the configured pipeline.
 
-Important command / location
+---
 
-Jenkins job:
+# Step 23 — Verify ECR Images
 
-Jenkins Dashboard → Job → Build → Console Output
+The Docker images pushed by Jenkins were verified in Amazon ECR.
 
-Screenshot file — 22-Jenkins_Console-output-Success.png
+![ECR Images Pushed](./screenshots/23-ECR-Images-Pushed.png)
 
-
-
-Verification
-
-The console output confirmed successful execution of the required pipeline operations.
-
-9. ECR and EC2 Deployment Verification
-
-9.1 Verify Images in ECR
-
-The pushed images were checked from Amazon ECR.
-
-Screenshot file — 23-ECR-Images-Pushed.png
-
-
-
-Verification
+**Verification**
 
 The expected application images were available in the ECR repositories.
 
-9.2 Pull Images from ECR on EC2
+---
 
-The deployment server pulled the required images from ECR.
+# Step 24 — Pull ECR Images on EC2
 
-Important command
+The Docker images were pulled from Amazon ECR onto the EC2 deployment host.
 
+**Important command**
+
+```bash
 docker pull <account-id>.dkr.ecr.ap-south-1.amazonaws.com/<repository>:<tag>
+```
 
-Screenshot file — 24-EC2-ECR-Images-Pulled.png
+![EC2 ECR Images Pulled](./screenshots/24-EC2-ECR-Images-Pulled.png)
 
+**Verification**
 
+The required ECR images were successfully pulled onto the EC2 instance.
 
-Verification
+---
 
-The required ECR images were successfully available on the EC2 host.
+# Step 25 — Verify Docker Containers on EC2
 
-9.3 Verify Running Docker Containers
+The application containers were checked after pulling and running the images.
 
-The application containers were checked after deployment.
+**Important command**
 
-Important command
-
+```bash
 docker ps
+```
 
-Screenshot file — 25-EC2-Docker-Containers-Running.png
+![EC2 Docker Containers Running](./screenshots/25-EC2-Docker-Containers-Running.png)
 
+**Verification**
 
+The required application containers were running successfully on the EC2 instance.
 
-Verification
+---
 
-The expected containers were running successfully.
+# Step 26 — Verify Frontend Application
 
-9.4 Verify Frontend Application
+The deployed frontend application was accessed through the browser.
 
-The frontend application was opened and verified from the browser.
+![Frontend Application Running](./screenshots/26-Frontend-Application-Running.png)
 
-Screenshot file — 26-Frontend-Application-Running.png
+**Verification**
 
+The frontend application was successfully running and accessible.
 
+---
 
-Verification
+# Step 27 — Install and Verify EKS Tools
 
-The frontend was reachable and displayed the streaming application successfully.
+The required AWS and Kubernetes tools were installed and verified before creating the EKS environment.
 
-10. Amazon EKS Setup
+**Important commands**
 
-10.1 Install / Verify EKS Tooling
-
-The EKS environment was prepared on the deployment host.
-
-Important commands
-
+```bash
 aws --version
+```
 
+```bash
 kubectl version --client
+```
 
+```bash
 eksctl version
+```
 
-Screenshot file — 27-EKS-Installed.png
+![EKS Installed](./screenshots/27-EKS-Installed.png)
 
+**Verification**
 
+The required EKS management tools were successfully installed and available.
 
-Verification
+---
 
-The required AWS/Kubernetes tooling was available for EKS administration.
+# Step 28 — Create EKS Cluster and Node Group
 
-10.2 EKS Cluster and Node Group
+The Amazon EKS cluster and worker node group were created.
 
-The EKS cluster was created with a worker node group.
+**Cluster name**
 
-Cluster name:
-
+```text
 streamingapp-eks
+```
 
-Region:
+**Region**
 
+```text
 ap-south-1
+```
 
-Important commands
+**Important command**
 
+```bash
 aws eks update-kubeconfig \
   --region ap-south-1 \
   --name streamingapp-eks
+```
 
+**Verify nodes**
+
+```bash
 kubectl get nodes
+```
 
-Screenshot file — 28-EKS-Cluster-Nodegroup-Ready.png
+![EKS Cluster Nodegroup Ready](./screenshots/28-EKS-Cluster-Nodegroup-Ready.png)
 
+**Verification**
 
+The EKS cluster was accessible and the worker node group was ready.
 
-Verification
+---
 
-The EKS cluster was reachable and the worker node group was ready.
+# Step 29 — Verify All EKS Pods
 
-11. Kubernetes Deployment
+The Kubernetes pods were checked after deploying the application to EKS.
 
-11.1 Verify EKS Pods
+**Important command**
 
-The application pods were checked after deployment.
-
-Important command
-
+```bash
 kubectl get pods -A
+```
 
-For the application namespace:
+![All EKS Pods Running Successfully](./screenshots/29-All-EKS-Pods-Running-Successfully.png)
 
-kubectl get pods
+**Verification**
 
-Screenshot file — 29-All-EKS-Pods-Running-Successfully.png
+The required Kubernetes pods were running successfully.
 
+---
 
+# Step 30 — Verify Kubernetes Resources
 
-Verification
+The Kubernetes deployments, services, and ingress resources were checked.
 
-The required Kubernetes workloads reached the expected running/ready state.
+**Important commands**
 
-11.2 Verify Kubernetes Resources
-
-The deployed Kubernetes resources were checked.
-
-Important commands
-
+```bash
 kubectl get deployments
+```
 
+```bash
 kubectl get services
+```
 
-kubectl get pods
-
+```bash
 kubectl get ingress
+```
 
-Screenshot file — 30-Kubernetes-Clusters-Deployed.png
+![Kubernetes Clusters Deployed](./screenshots/30-Kubernetes-Clusters-Deployed.png)
 
-
-
-Verification
+**Verification**
 
 The application resources were successfully deployed to the EKS cluster.
 
-12. Helm Deployment
+---
 
-The Kubernetes manifests were packaged as a Helm chart so that deployment configuration could be managed through values.yaml.
+# Step 31 — Deploy Application Using Helm
 
-12.1 Helm Chart Structure
+Helm was used to package and deploy the Kubernetes application.
 
-The Helm chart contains the chart definition, configurable values and Kubernetes templates.
+### Step 31.1 — Verify Helm
 
-Typical structure:
-
-streamingapp/
-├── Chart.yaml
-├── values.yaml
-└── templates/
-    ├── auth-deployment.yaml
-    ├── auth-service.yaml
-    ├── streaming-deployment.yaml
-    ├── streaming-service.yaml
-    ├── admin-deployment.yaml
-    ├── chat-deployment.yaml
-    ├── frontend-deployment.yaml
-    ├── mongo-statefulset.yaml
-    ├── configmap.yaml
-    ├── secret.yaml
-    └── ingress.yaml
-
-values.yaml contains configurable values such as image repositories, image tags, replica counts, ports, MongoDB storage size and ingress host.
-
-12.2 Helm Commands
-
-Verify Helm:
-
+```bash
 helm version
+```
 
-Validate the chart:
+### Step 31.2 — Validate Helm Chart
 
+```bash
 helm lint ./streamingapp
+```
 
-Preview the generated Kubernetes manifests:
+### Step 31.3 — Preview Kubernetes Resources
 
+```bash
 helm template streamingapp ./streamingapp
+```
 
-Install the chart:
+### Step 31.4 — Install Helm Release
 
+```bash
 helm install streamingapp ./streamingapp
+```
 
-Or upgrade an existing release:
+### Step 31.5 — Verify Helm Release
 
-helm upgrade streamingapp ./streamingapp
-
-Verify the Helm release:
-
+```bash
 helm list
+```
 
+```bash
 helm status streamingapp
+```
 
-Screenshot file — 31-Helm-Deployment.png
+![Helm Deployment](./screenshots/31-Helm-Deployment.png)
 
+**Verification**
 
+The Helm release was successfully deployed and the application resources were running in the EKS cluster.
 
-Verification
+---
 
-The Helm release was deployed successfully and the resulting Kubernetes resources were running in the EKS cluster.
+# Step 32 — Configure CloudWatch Alarm
 
-13. Step 6 — Monitoring and Logging
-
-13.1 Amazon CloudWatch Observability Add-on
-
-Amazon CloudWatch Observability was enabled for the EKS cluster.
-
-Important commands
-
-aws eks create-addon \
-  --cluster-name streamingapp-eks \
-  --addon-name amazon-cloudwatch-observability \
-  --region ap-south-1
-
-Check the add-on:
-
-aws eks describe-addon \
-  --cluster-name streamingapp-eks \
-  --addon-name amazon-cloudwatch-observability \
-  --region ap-south-1 \
-  --query 'addon.status' \
-  --output text
-
-Expected status:
-
-ACTIVE
-
-Verify the CloudWatch namespace:
-
-kubectl get pods -n amazon-cloudwatch
-
-Verification
-
-The CloudWatch agent, Fluent Bit and CloudWatch observability components were running in the amazon-cloudwatch namespace.
-
-13.2 CloudWatch Metrics
-
-Container Insights metrics were checked from CloudWatch.
-
-Important command
-
-aws cloudwatch list-metrics \
-  --namespace ContainerInsights \
-  --region ap-south-1 \
-  --query 'Metrics[].MetricName' \
-  --output text
-
-Metrics observed included Kubernetes/container-related metrics such as:
-
-pod_status_unknown
-replicas_desired
-replicas_ready
-rest_client_request_duration_seconds
-rest_client_requests_total
-service_number_of_running_pods
-status_replicas_available
-status_replicas_unavailable
-
-13.3 Configure CloudWatch Alarm
+Amazon CloudWatch was configured to monitor the EKS environment.
 
 A CloudWatch alarm was configured for high node CPU utilization.
 
-Important command
+**Important command**
 
+```bash
 aws cloudwatch put-metric-alarm \
   --alarm-name streamingapp-node-cpu-high \
   --namespace ContainerInsights \
   --metric-name node_cpu_utilization \
-  --dimensions Name=ClusterName,Value=streamingapp-eks Name=NodeName,Value=ip-192-168-57-42.ap-south-1.compute.internal \
+  --dimensions Name=ClusterName,Value=streamingapp-eks \
   --statistic Average \
   --period 300 \
   --evaluation-periods 2 \
   --threshold 80 \
   --comparison-operator GreaterThanThreshold \
   --region ap-south-1
+```
 
-Screenshot file — 32-CloudWatch-Alarm.png
+![CloudWatch Alarm](./screenshots/32-CloudWatch-Alarm.png)
 
+**Verification**
 
+The CloudWatch alarm was successfully configured for monitoring node CPU utilization.
 
-Verification
+---
 
-The CloudWatch alarm was visible in the AWS console with the configured metric, threshold and evaluation period.
+# Step 33 — Configure Centralized Logging
 
-14. Centralized Logging
+Amazon CloudWatch Logs was configured to centralize Kubernetes and application logs.
 
-14.1 CloudWatch Log Groups
+The main application log group was:
 
-CloudWatch Logs were used to centralize Kubernetes application and infrastructure logs.
-
-The CloudWatch Observability add-on created/used log groups under:
-
-/aws/containerinsights/streamingapp-eks/
-
-The relevant log groups included:
-
+```text
 /aws/containerinsights/streamingapp-eks/application
+```
+
+Other EKS log groups included:
+
+```text
 /aws/containerinsights/streamingapp-eks/dataplane
+```
+
+```text
 /aws/containerinsights/streamingapp-eks/host
+```
 
-Important command
+**Important command**
 
+```bash
 aws logs describe-log-groups \
   --region ap-south-1 \
   --query 'logGroups[].logGroupName' \
   --output table
+```
 
-Screenshot file — 33-Centralized-Logging.png
+![Centralized Logging](./screenshots/33-Centralized-Logging.png)
 
+**Verification**
 
+The EKS CloudWatch log groups were available and receiving centralized logs.
 
-Verification
+---
 
-The EKS cluster log groups were present in CloudWatch and were receiving centralized log streams.
+# Step 34 — Verify Application Logs in CloudWatch
 
-14.2 Verify Application Log Streams
+Application log streams were checked directly from the CloudWatch application log group.
 
-Application log streams were checked directly from the CloudWatch log group.
+**Important command**
 
-Important command
-
+```bash
 aws logs describe-log-streams \
   --log-group-name /aws/containerinsights/streamingapp-eks/application \
   --region ap-south-1 \
   --query 'logStreams[].logStreamName' \
   --output table
+```
 
-The returned streams included Kubernetes container log streams for application workloads and CloudWatch/Fluent Bit components.
+![Centralize Application Logs Using CloudWatch Logs](./screenshots/34-Centralize-application-logs-using-CloudWatch-Logs.png)
 
-Screenshot file — 34-Centralize-application-logs-using-CloudWatch-Logs.png
+**Verification**
 
+Application and container log streams were visible in CloudWatch Logs, confirming centralized application logging.
 
+---
 
-Verification
+# Step 35 — Scale Application and Verify Health
 
-Application/container log streams were visible under the EKS CloudWatch application log group, demonstrating centralized log collection.
+The application deployment was scaled to verify Kubernetes replica management and application health after scaling.
 
-15. Step 8 — Final Validation
+### Step 35.1 — Scale Deployment
 
-15.1 Frontend Validation
+**Important command**
 
-The frontend application was accessed through the deployed application endpoint.
-
-Screenshot file — 26-Frontend-Application-Running.png
-
-
-
-Verification
-
-The frontend was reachable and the application UI loaded successfully.
-
-15.2 Kubernetes Health Validation
-
-The Kubernetes resources were checked using:
-
-kubectl get pods
-
-kubectl get deployments
-
-kubectl get services
-
-kubectl get ingress
-
-The application pods were expected to be Running and Ready.
-
-15.3 Scaling Validation
-
-The application was scaled to verify that Kubernetes could create additional replicas and maintain application health.
-
-Important command
-
-Example:
-
+```bash
 kubectl scale deployment <deployment-name> --replicas=3
+```
 
-Then verify:
+### Step 35.2 — Verify Pods
 
+```bash
 kubectl get pods -o wide
+```
 
-Verify the deployment:
+### Step 35.3 — Verify Deployment
 
+```bash
 kubectl get deployment <deployment-name>
+```
 
-The desired and available replica counts should match after the scaling operation completes.
+### Step 35.4 — Verify Rollout
 
-To inspect the rollout:
-
+```bash
 kubectl rollout status deployment/<deployment-name>
+```
 
-Screenshot file — 35-Application-healthy-after-scaling.png
+![Application Healthy After Scaling](./screenshots/35-Application-healthy-after-scaling.png)
 
+**Verification**
 
+The application remained healthy after scaling and the expected replicas became available successfully.
 
-Verification
+---
 
-The application remained healthy after the scaling operation and the expected replicas became available.
+# Project Architecture
 
-16. Important Kubernetes Commands Used During Validation
+The complete DevOps workflow implemented in this project is:
 
-Check all nodes:
-
-kubectl get nodes
-
-Check all pods:
-
-kubectl get pods -A
-
-Check application pods:
-
-kubectl get pods
-
-Check deployments:
-
-kubectl get deployments
-
-Check services:
-
-kubectl get services
-
-Check ingress:
-
-kubectl get ingress
-
-Check pod details:
-
-kubectl describe pod <pod-name>
-
-Check pod logs:
-
-kubectl logs <pod-name>
-
-Follow logs:
-
-kubectl logs -f <pod-name>
-
-Restart a deployment:
-
-kubectl rollout restart deployment <deployment-name>
-
-Check rollout:
-
-kubectl rollout status deployment/<deployment-name>
-
-Scale a deployment:
-
-kubectl scale deployment <deployment-name> --replicas=3
-
-17. Important Helm Commands
-
-Check Helm:
-
-helm version
-
-List releases:
-
-helm list
-
-Check release status:
-
-helm status streamingapp
-
-Validate chart:
-
-helm lint ./streamingapp
-
-Render templates locally:
-
-helm template streamingapp ./streamingapp
-
-Install:
-
-helm install streamingapp ./streamingapp
-
-Upgrade:
-
-helm upgrade streamingapp ./streamingapp
-
-List release history:
-
-helm history streamingapp
-
-18. Important Docker Commands
-
-Check Docker:
-
-docker --version
-
-List images:
-
-docker images
-
-List running containers:
-
-docker ps
-
-Build an image:
-
-docker build -t <image-name>:<tag> .
-
-Tag an image for ECR:
-
-docker tag <image-name>:<tag> \
-<account-id>.dkr.ecr.ap-south-1.amazonaws.com/<repository>:<tag>
-
-Login to ECR:
-
-aws ecr get-login-password --region ap-south-1 | \
-docker login \
---username AWS \
---password-stdin <account-id>.dkr.ecr.ap-south-1.amazonaws.com
-
-Push an image:
-
-docker push \
-<account-id>.dkr.ecr.ap-south-1.amazonaws.com/<repository>:<tag>
-
-Pull an image:
-
-docker pull \
-<account-id>.dkr.ecr.ap-south-1.amazonaws.com/<repository>:<tag>
-
-19. Important AWS / CloudWatch Commands
-
-Check EKS cluster:
-
-aws eks describe-cluster \
-  --name streamingapp-eks \
-  --region ap-south-1
-
-Update kubeconfig:
-
-aws eks update-kubeconfig \
-  --region ap-south-1 \
-  --name streamingapp-eks
-
-List EKS add-ons:
-
-aws eks list-addons \
-  --cluster-name streamingapp-eks \
-  --region ap-south-1
-
-Check CloudWatch Observability add-on:
-
-aws eks describe-addon \
-  --cluster-name streamingapp-eks \
-  --addon-name amazon-cloudwatch-observability \
-  --region ap-south-1 \
-  --query 'addon.status' \
-  --output text
-
-List CloudWatch log groups:
-
-aws logs describe-log-groups \
-  --region ap-south-1 \
-  --query 'logGroups[].logGroupName' \
-  --output table
-
-List application log streams:
-
-aws logs describe-log-streams \
-  --log-group-name /aws/containerinsights/streamingapp-eks/application \
-  --region ap-south-1 \
-  --query 'logStreams[].logStreamName' \
-  --output table
-
-List Container Insights metrics:
-
-aws cloudwatch list-metrics \
-  --namespace ContainerInsights \
-  --region ap-south-1 \
-  --query 'Metrics[].MetricName' \
-  --output text
-
-20. Assignment Completion Checklist
-
-Requirement
-
-Implementation
-
-Validation
-
-Repository setup
-
-GitHub repository
-
-01-fork-repository.png
-
-Docker images
-
-Docker build
-
-02-docker-images-built.png
-
-Docker Compose
-
-Compose configuration
-
-03-docker-compose-configuration.png
-
-Image verification
-
-docker images
-
-04-docker-images-verified.png
-
-Containers
-
-docker ps
-
-05-containers-running.png
-
-ECR repositories
-
+```text
+GitHub Repository
+       |
+       v
+Docker Images
+       |
+       v
+Docker Compose Validation
+       |
+       v
 Amazon ECR
-
-06-ecr-repositories-created.png
-
-ECR tagging
-
-Docker tag
-
-07-ecr-images-tagged.png
-
-ECR push
-
-Docker push
-
-08-ecr-images-pushed.png
-
-ECR verification
-
-ECR image listing
-
-09-ecr-images-verified.png
-
-Jenkins
-
+       |
+       v
 Jenkins on EC2
-
-10–16
-
-Docker on Jenkins
-
-Docker on EC2
-
-17-Docker-installed-EC2.png
-
-AWS access
-
-IAM role
-
-18-jenkins-ecr-iam-role.png
-
-ECR authentication
-
-Docker/ECR login
-
-19-EC2-ECR-Docker-login.png
-
-Jenkins CI/CD
-
-Automated pipeline
-
-20–22
-
-ECR deployment
-
-Pull images
-
-23–25
-
-Application
-
-Frontend reachable
-
-26-Frontend-Application-Running.png
-
-EKS
-
-Cluster/node group
-
-27–28
-
-Kubernetes
-
-Pods/resources
-
-29–30
-
-Helm
-
-Helm release
-
-31-Helm-Deployment.png
-
-CloudWatch monitoring
-
-Metrics + alarm
-
-32-CloudWatch-Alarm.png
-
-Centralized logging
-
-CloudWatch Logs
-
-33–34
-
-Scaling validation
-
-Application health after scaling
-
-35-Application-healthy-after-scaling.png
-
-21. Final Result
-
-The completed solution provides a full deployment path from source code to a running Kubernetes application:
-
-GitHub
-  ↓
-Jenkins
-  ↓
-Docker Build
-  ↓
+       |
+       v
+GitHub Automatic Trigger
+       |
+       v
+Jenkins CI/CD Pipeline
+       |
+       v
+Docker Build / Tag / Push
+       |
+       v
 Amazon ECR
-  ↓
+       |
+       v
 Amazon EKS
-  ↓
+       |
+       v
+Kubernetes
+       |
+       v
 Helm Deployment
-  ↓
-Frontend + Backend Services + MongoDB
-  ↓
-CloudWatch Metrics + Alarms
-  ↓
-CloudWatch Centralized Logs
+       |
+       v
+Application Services
+       |
+       +--------------------+
+       |                    |
+       v                    v
+CloudWatch Monitoring   CloudWatch Logs
+       |                    |
+       v                    v
+CloudWatch Alarm       Centralized Logging
+       |
+       v
+Application Scaling
+       |
+       v
+Health Validation
+```
 
-The final deployment was validated through Docker, Jenkins, ECR, Kubernetes, Helm, CloudWatch monitoring, centralized logging and post-scaling health checks.
+---
 
-All screenshots referenced in this document are stored in the repository's screenshots/ directory and are linked using relative Markdown paths so GitHub renders them directly in the README.
-
-
-# StreamingApp
-
-Stream premium video content, host live watch parties, and manage your catalogue with a modern microservice architecture. The platform now ships with a production-ready admin portal, real-time chat, S3-backed adaptive streaming, and a redesigned cinematic frontend experience.
-
-## Architecture
+# Application Architecture
 
 | Service | Port | Description |
-| --- | --- | --- |
-| `authService` | 3001 | User authentication, registration, JWT issuance |
-| `streamingService` | 3002 | Video catalogue, S3 playback endpoints, public APIs |
-| `adminService` | 3003 | Dedicated admin microservice for asset management and uploads |
-| `chatService` | 3004 | Websocket + REST chat for live watch parties |
-| `frontend` | 3000 | React SPA with revamped UI and integrated chat |
+|---|---:|---|
+| `authService` | 3001 | User authentication, registration and JWT issuance |
+| `streamingService` | 3002 | Video catalogue, S3 playback endpoints and public APIs |
+| `adminService` | 3003 | Admin service for asset management and uploads |
+| `chatService` | 3004 | WebSocket and REST chat for live watch parties |
+| `frontend` | 3000 | React frontend application |
 | `mongo` | 27017 | Shared MongoDB instance |
 
-All backend services share common database models and utilities through `backend/common`.
+---
 
-## Environment Configuration
+# Environment Configuration
 
-Create an `.env` for each service (or export variables before running). All services accept the standard AWS credentials for S3 access.
+## Auth Service
 
-### Auth Service (`backend/authService/.env`)
+`backend/authService/.env`
+
 ```ini
 PORT=3001
 MONGO_URI=mongodb://localhost:27017/streamingapp
@@ -1252,7 +792,10 @@ AWS_REGION=ap-south-1
 AWS_S3_BUCKET=
 ```
 
-### Streaming Service (`backend/streamingService/.env`)
+## Streaming Service
+
+`backend/streamingService/.env`
+
 ```ini
 PORT=3002
 MONGO_URI=mongodb://localhost:27017/streamingapp
@@ -1266,7 +809,10 @@ AWS_CDN_URL=
 STREAMING_PUBLIC_URL=http://localhost:3002
 ```
 
-### Admin Service (`backend/adminService/.env`)
+## Admin Service
+
+`backend/adminService/.env`
+
 ```ini
 PORT=3003
 MONGO_URI=mongodb://localhost:27017/streamingapp
@@ -1278,7 +824,10 @@ AWS_REGION=ap-south-1
 AWS_S3_BUCKET=
 ```
 
-### Chat Service (`backend/chatService/.env`)
+## Chat Service
+
+`backend/chatService/.env`
+
 ```ini
 PORT=3004
 MONGO_URI=mongodb://localhost:27017/streamingapp
@@ -1286,7 +835,10 @@ JWT_SECRET=changeme
 CLIENT_URLS=http://localhost:3000
 ```
 
-### Frontend build variables (`frontend/.env` or Docker build args)
+## Frontend
+
+`frontend/.env`
+
 ```ini
 REACT_APP_AUTH_API_URL=http://localhost:3001/api
 REACT_APP_STREAMING_API_URL=http://localhost:3002/api
@@ -1296,22 +848,448 @@ REACT_APP_CHAT_API_URL=http://localhost:3004/api/chat
 REACT_APP_CHAT_SOCKET_URL=http://localhost:3004
 ```
 
-## Running with Docker Compose
+---
 
-1. Populate the environment variables above (or rely on the defaults baked into `docker-compose.yml`).
-2. Build and start the stack:
-   ```bash
-   docker-compose up --build
-   ```
-3. Navigate to `http://localhost:3000` for the web app.
+# Running with Docker Compose
 
-The compose file provisions MongoDB plus all four Node.js microservices. S3 credentials are optional for local testing—you can still browse seeded metadata, but streaming requires valid S3 objects.
-
-## Local Development
-
-Install dependencies for each service:
+## Build and Start
 
 ```bash
+docker-compose up --build
+```
+
+## Verify Containers
+
+```bash
+docker ps
+```
+
+## Open Application
+
+```text
+http://localhost:3000
+```
+
+---
+
+# Local Development
+
+## Auth Service
+
+```bash
+cd backend/authService
+npm install
+npm run dev
+```
+
+## Streaming Service
+
+```bash
+cd backend/streamingService
+npm install
+npm run dev
+```
+
+## Admin Service
+
+```bash
+cd backend/adminService
+npm install
+npm run dev
+```
+
+## Chat Service
+
+```bash
+cd backend/chatService
+npm install
+npm run dev
+```
+
+## Frontend
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+---
+
+# Important Docker Commands
+
+### Check Docker Version
+
+```bash
+docker --version
+```
+
+### List Images
+
+```bash
+docker images
+```
+
+### List Running Containers
+
+```bash
+docker ps
+```
+
+### Build Image
+
+```bash
+docker build -t <image-name>:<tag> .
+```
+
+### Tag Image for ECR
+
+```bash
+docker tag <image-name>:<tag> \
+  <account-id>.dkr.ecr.ap-south-1.amazonaws.com/<repository>:<tag>
+```
+
+### Login to ECR
+
+```bash
+aws ecr get-login-password --region ap-south-1 | \
+docker login \
+  --username AWS \
+  --password-stdin <account-id>.dkr.ecr.ap-south-1.amazonaws.com
+```
+
+### Push Image
+
+```bash
+docker push \
+  <account-id>.dkr.ecr.ap-south-1.amazonaws.com/<repository>:<tag>
+```
+
+### Pull Image
+
+```bash
+docker pull \
+  <account-id>.dkr.ecr.ap-south-1.amazonaws.com/<repository>:<tag>
+```
+
+---
+
+# Important Kubernetes Commands
+
+### Check Nodes
+
+```bash
+kubectl get nodes
+```
+
+### Check Pods
+
+```bash
+kubectl get pods -A
+```
+
+### Check Deployments
+
+```bash
+kubectl get deployments
+```
+
+### Check Services
+
+```bash
+kubectl get services
+```
+
+### Check Ingress
+
+```bash
+kubectl get ingress
+```
+
+### Describe Pod
+
+```bash
+kubectl describe pod <pod-name>
+```
+
+### View Pod Logs
+
+```bash
+kubectl logs <pod-name>
+```
+
+### Follow Pod Logs
+
+```bash
+kubectl logs -f <pod-name>
+```
+
+### Restart Deployment
+
+```bash
+kubectl rollout restart deployment <deployment-name>
+```
+
+### Check Rollout Status
+
+```bash
+kubectl rollout status deployment/<deployment-name>
+```
+
+### Scale Deployment
+
+```bash
+kubectl scale deployment <deployment-name> --replicas=3
+```
+
+---
+
+# Important Helm Commands
+
+### Check Helm Version
+
+```bash
+helm version
+```
+
+### Validate Chart
+
+```bash
+helm lint ./streamingapp
+```
+
+### Render Templates
+
+```bash
+helm template streamingapp ./streamingapp
+```
+
+### Install Release
+
+```bash
+helm install streamingapp ./streamingapp
+```
+
+### Upgrade Release
+
+```bash
+helm upgrade streamingapp ./streamingapp
+```
+
+### List Releases
+
+```bash
+helm list
+```
+
+### Check Release Status
+
+```bash
+helm status streamingapp
+```
+
+### View Release History
+
+```bash
+helm history streamingapp
+```
+
+---
+
+# Important AWS and CloudWatch Commands
+
+### Check EKS Cluster
+
+```bash
+aws eks describe-cluster \
+  --name streamingapp-eks \
+  --region ap-south-1
+```
+
+### Update kubeconfig
+
+```bash
+aws eks update-kubeconfig \
+  --region ap-south-1 \
+  --name streamingapp-eks
+```
+
+### List EKS Add-ons
+
+```bash
+aws eks list-addons \
+  --cluster-name streamingapp-eks \
+  --region ap-south-1
+```
+
+### Check CloudWatch Observability Add-on
+
+```bash
+aws eks describe-addon \
+  --cluster-name streamingapp-eks \
+  --addon-name amazon-cloudwatch-observability \
+  --region ap-south-1 \
+  --query 'addon.status' \
+  --output text
+```
+
+### List CloudWatch Log Groups
+
+```bash
+aws logs describe-log-groups \
+  --region ap-south-1 \
+  --query 'logGroups[].logGroupName' \
+  --output table
+```
+
+### List Application Log Streams
+
+```bash
+aws logs describe-log-streams \
+  --log-group-name /aws/containerinsights/streamingapp-eks/application \
+  --region ap-south-1 \
+  --query 'logStreams[].logStreamName' \
+  --output table
+```
+
+### List Container Insights Metrics
+
+```bash
+aws cloudwatch list-metrics \
+  --namespace ContainerInsights \
+  --region ap-south-1 \
+  --query 'Metrics[].MetricName' \
+  --output text
+```
+
+---
+
+# Feature Highlights
+
+- **S3-backed adaptive streaming** with secure signed uploads for administrators.
+- **Dedicated admin microservice** for video ingestion, metadata management and featured content.
+- **Real-time chat** using Socket.IO and persistent message history.
+- **Modern React frontend** with responsive application pages.
+- **Role-aware access control** across frontend routes and backend microservices.
+- **Dockerized microservices** for consistent application deployment.
+- **Jenkins CI/CD automation** for application image build and deployment.
+- **Amazon ECR** for centralized Docker image storage.
+- **Amazon EKS** for Kubernetes-based application deployment.
+- **Helm** for Kubernetes application management.
+- **CloudWatch** for monitoring, alarms and centralized logging.
+
+---
+
+# Testing
+
+Recommended smoke checks:
+
+1. Register and log in through the web UI.
+2. Upload a small video and thumbnail through the admin dashboard.
+3. Confirm playback from the browse page.
+4. Verify that chat messages are broadcast between multiple browser tabs.
+5. Verify Kubernetes pods using `kubectl get pods`.
+6. Verify services using `kubectl get services`.
+7. Verify the Helm release using `helm status streamingapp`.
+8. Verify CloudWatch logs.
+9. Verify CloudWatch alarm configuration.
+10. Scale the application and verify that the application remains healthy.
+
+---
+
+# Project Completion
+
+The complete application deployment was successfully implemented using modern DevOps tools and AWS services.
+
+The project demonstrates:
+
+- GitHub repository management
+- Docker containerization
+- Docker Compose
+- Amazon ECR
+- Jenkins CI/CD
+- GitHub automatic triggering
+- EC2-based Jenkins server
+- IAM-based ECR access
+- Amazon EKS
+- Kubernetes
+- Helm
+- CloudWatch monitoring
+- CloudWatch alarms
+- Centralized CloudWatch logging
+- Kubernetes application scaling
+- Post-deployment application health validation
+
+The application was successfully containerized, pushed to Amazon ECR, automated through Jenkins, deployed to Amazon EKS using Helm, monitored through CloudWatch, and validated after scaling.
+
+-------------------------------------------------------------------------------------------------------
+StreamingApp
+Stream premium video content, host live watch parties, and manage your catalogue with a modern microservice architecture. The platform now ships with a production-ready admin portal, real-time chat, S3-backed adaptive streaming, and a redesigned cinematic frontend experience.
+
+Architecture
+Service	Port	Description
+authService	3001	User authentication, registration, JWT issuance
+streamingService	3002	Video catalogue, S3 playback endpoints, public APIs
+adminService	3003	Dedicated admin microservice for asset management and uploads
+chatService	3004	Websocket + REST chat for live watch parties
+frontend	3000	React SPA with revamped UI and integrated chat
+mongo	27017	Shared MongoDB instance
+All backend services share common database models and utilities through backend/common.
+
+Environment Configuration
+Create an .env for each service (or export variables before running). All services accept the standard AWS credentials for S3 access.
+
+Auth Service (backend/authService/.env)
+PORT=3001
+MONGO_URI=mongodb://localhost:27017/streamingapp
+JWT_SECRET=changeme
+CLIENT_URLS=http://localhost:3000
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION=ap-south-1
+AWS_S3_BUCKET=
+Streaming Service (backend/streamingService/.env)
+PORT=3002
+MONGO_URI=mongodb://localhost:27017/streamingapp
+JWT_SECRET=changeme
+CLIENT_URLS=http://localhost:3000
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION=ap-south-1
+AWS_S3_BUCKET=
+AWS_CDN_URL=
+STREAMING_PUBLIC_URL=http://localhost:3002
+Admin Service (backend/adminService/.env)
+PORT=3003
+MONGO_URI=mongodb://localhost:27017/streamingapp
+JWT_SECRET=changeme
+CLIENT_URLS=http://localhost:3000
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION=ap-south-1
+AWS_S3_BUCKET=
+Chat Service (backend/chatService/.env)
+PORT=3004
+MONGO_URI=mongodb://localhost:27017/streamingapp
+JWT_SECRET=changeme
+CLIENT_URLS=http://localhost:3000
+Frontend build variables (frontend/.env or Docker build args)
+REACT_APP_AUTH_API_URL=http://localhost:3001/api
+REACT_APP_STREAMING_API_URL=http://localhost:3002/api
+REACT_APP_STREAMING_PUBLIC_URL=http://localhost:3002
+REACT_APP_ADMIN_API_URL=http://localhost:3003/api/admin
+REACT_APP_CHAT_API_URL=http://localhost:3004/api/chat
+REACT_APP_CHAT_SOCKET_URL=http://localhost:3004
+Running with Docker Compose
+Populate the environment variables above (or rely on the defaults baked into docker-compose.yml).
+Build and start the stack:
+docker-compose up --build
+Navigate to http://localhost:3000 for the web app.
+The compose file provisions MongoDB plus all four Node.js microservices. S3 credentials are optional for local testing—you can still browse seeded metadata, but streaming requires valid S3 objects.
+
+Local Development
+Install dependencies for each service:
+
 # auth service
 cd backend/authService && npm install
 
@@ -1326,34 +1304,24 @@ cd ../chatService && npm install
 
 # frontend
 cd ../../frontend && npm install
-```
-
 Run the services (in separate terminals) after starting MongoDB:
 
-```bash
 cd backend/authService && npm run dev
 cd backend/streamingService && npm run dev
 cd backend/adminService && npm run dev
 cd backend/chatService && npm run dev
 cd frontend && npm start
-```
-
-## Feature Highlights
-
-- **S3-backed adaptive streaming** with secure signed uploads for admins.
-- **Dedicated admin microservice** for video ingestion, metadata management, and featured curation.
-- **Real-time chat** overlay in the player (Socket.IO + persistent message history).
-- **Modern React experience** featuring cinematic hero sections, dynamic carousels, and responsive design.
-- **Role-aware access control** across frontend routes and backend microservices.
-
-## Testing
-
+Feature Highlights
+S3-backed adaptive streaming with secure signed uploads for admins.
+Dedicated admin microservice for video ingestion, metadata management, and featured curation.
+Real-time chat overlay in the player (Socket.IO + persistent message history).
+Modern React experience featuring cinematic hero sections, dynamic carousels, and responsive design.
+Role-aware access control across frontend routes and backend microservices.
+Testing
 Automated tests are not yet included. Recommended smoke checks:
 
-1. Register and log in through the web UI.
-2. Upload a small video + thumbnail via the admin dashboard (requires valid S3 credentials).
-3. Confirm playback from the browse page and verify that chat messages broadcast between multiple browser tabs.
-
-## License
-
+Register and log in through the web UI.
+Upload a small video + thumbnail via the admin dashboard (requires valid S3 credentials).
+Confirm playback from the browse page and verify that chat messages broadcast between multiple browser tabs.
+License
 MIT © StreamFlix Team
